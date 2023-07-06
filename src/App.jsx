@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.scss';
+import classNames from 'classnames';
 
 import usersFromServer from './api/users';
 import categoriesFromServer from './api/categories';
@@ -26,6 +27,28 @@ const products = productsWithout.map(product => ({
 }));
 
 export const App = () => {
+  const [query, setQuery] = useState('');
+  const [filterBy, setFilterBy] = useState('');
+
+  function getProducts(someProducts, someQuery, someFilterBy) {
+    let newProducts = [...someProducts];
+
+    if (query) {
+      // eslint-disable-next-line max-len
+      newProducts = newProducts.filter(product => product.owner.id === someQuery);
+    }
+
+    if (someFilterBy) {
+      newProducts = newProducts.filter(product =>
+        // eslint-disable-next-line implicit-arrow-linebreak
+        product.name.toLowerCase().includes(someFilterBy.toLowerCase()));
+    }
+
+    return newProducts;
+  }
+
+  const newProducts = getProducts(products, query, filterBy);
+
   // eslint-disable-next-line consistent-return
   function findSex(sex) {
     if (sex === 'm') {
@@ -50,6 +73,10 @@ export const App = () => {
               <a
                 data-cy="FilterAllUsers"
                 href="#/"
+                className={classNames(
+                  { 'is-active': query === '' },
+                )}
+                onClick={() => setQuery('')}
               >
                 All
               </a>
@@ -57,6 +84,10 @@ export const App = () => {
                 <a
                   data-cy="FilterUser"
                   href="#/"
+                  className={classNames(
+                    { 'is-active': query === user.id },
+                  )}
+                  onClick={() => setQuery(user.id)}
                 >
                   {user.name}
                 </a>
@@ -69,8 +100,10 @@ export const App = () => {
                 <input
                   data-cy="SearchField"
                   type="text"
+                  value={filterBy}
                   className="input"
                   placeholder="Search"
+                  onChange={event => setFilterBy(event.target.value)}
                 />
 
                 <span className="icon is-left">
@@ -79,11 +112,18 @@ export const App = () => {
 
                 <span className="icon is-right">
                   {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                  <button
-                    data-cy="ClearButton"
-                    type="button"
-                    className="delete"
-                  />
+                  { filterBy === ''
+                    ? null
+                    : (
+                      <button
+                        data-cy="ClearButton"
+                        type="button"
+                        className="delete"
+                        onClick={() => setFilterBy('')}
+                      />
+                    )
+
+                  }
                 </span>
               </p>
             </div>
@@ -113,6 +153,11 @@ export const App = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className="button is-link is-outlined is-fullwidth"
+                onClick={() => {
+                  setQuery('');
+                  setFilterBy('');
+                }
+                }
               >
                 Reset all filters
               </a>
@@ -121,9 +166,6 @@ export const App = () => {
         </div>
 
         <div className="box table-container">
-          <p data-cy="NoMatchingMessage">
-            No products matching selected criteria
-          </p>
 
           <table
             data-cy="ProductTable"
@@ -182,27 +224,36 @@ export const App = () => {
             </thead>
 
             <tbody>
-              {products.map(product => (
-                <tr data-cy="Product">
-                  <td className="has-text-weight-bold" data-cy="ProductId">
-                    {product.id}
-                  </td>
+              {newProducts.length !== 0
+                ? (newProducts.map(product => (
+                  <tr data-cy="Product">
+                    <td className="has-text-weight-bold" data-cy="ProductId">
+                      {product.id}
+                    </td>
 
-                  <td data-cy="ProductName">
-                    {product.name}
-                  </td>
-                  <td data-cy="ProductCategory">
-                    {`${product.category.icon} - ${product.category.title}`}
-                  </td>
+                    <td data-cy="ProductName">
+                      {product.name}
+                    </td>
+                    <td data-cy="ProductCategory">
+                      {`${product.category.icon} - ${product.category.title}`}
+                    </td>
 
-                  <td
-                    data-cy="ProductUser"
-                    className={`${findSex(product.owner.sex)}`}
-                  >
-                    {product.owner.name}
-                  </td>
-                </tr>
-              ))}
+                    <td
+                      data-cy="ProductUser"
+                      className={`${findSex(product.owner.sex)}`}
+                    >
+                      {product.owner.name}
+                    </td>
+                  </tr>
+                )))
+                : (
+                  <tr>
+                    <p data-cy="NoMatchingMessage">
+                      No products matching selected criteria
+                    </p>
+                  </tr>
+                )
+              }
             </tbody>
           </table>
         </div>
